@@ -1,7 +1,7 @@
 # GUI Recorder
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/default)
-[![GitHub release](https://img.shields.io/github/v/release/ideaalab/gui-recorder)](https://github.com/ideaalab/gui-recorder/releases)
+[![GitHub release](https://img.shields.io/github/v/release/martinandersen84/gui-recorder)](https://github.com/martinandersen84/gui-recorder/releases)
 
 A Home Assistant custom component that adds a sidebar panel to manage your `recorder` configuration (which entities get recorded) and database maintenance (purge, repack, stats) — without editing `configuration.yaml`.
 
@@ -43,7 +43,9 @@ A Home Assistant custom component that adds a sidebar panel to manage your `reco
 
 GUI Recorder is part of the default HACS catalog — no custom repository needed.
 
-1. Open **HACS → Integrations**, search for **GUI Recorder**, and install it.
+[![Open your Home Assistant instance and open this repository inside HACS.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=martinandersen84&repository=gui-recorder&category=integration)
+
+1. Click the button above, or open **HACS → Integrations** and search for **GUI Recorder**, then install it.
 2. Restart Home Assistant.
 3. Go to **Settings → Devices & services → Add integration** and choose **GUI Recorder**.
 
@@ -103,7 +105,7 @@ To leave `configuration.yaml` clean (recommended), fold `gui_recorder.yaml` back
 
 ## Support
 
-- Issues: https://github.com/ideaalab/gui-recorder/issues
+- Issues: https://github.com/martinandersen84/gui-recorder/issues
 
 ## License
 

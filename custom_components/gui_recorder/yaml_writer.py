@@ -89,7 +89,7 @@ async def async_write_yaml(hass: HomeAssistant) -> str:
     # emits them in our preferred order: entities first under exclude, then the
     # rest. safe_dump handles quoting for values with YAML-significant chars
     # (e.g. globs starting with '*' which YAML would otherwise parse as alias
-    # references and reject — see https://github.com/ideaalab/gui-recorder).
+    # references and reject — see https://github.com/martinandersen84/gui-recorder).
     manual_exclude = manual.get("exclude", {})
     exclude_block: dict[str, list[str]] = {}
     if excluded_entities:

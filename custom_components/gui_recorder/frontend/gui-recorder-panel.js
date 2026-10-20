@@ -656,7 +656,7 @@ class GuiRecorderPanel extends HTMLElement {
     if (!entity.glob_hidden) return "";
     return entity.recorded
       ? `<div class="row-note">kept by include.entities, above your exclude glob</div>`
-      : `<div class="row-note">hidden by one of your manual exclude globs/domains</div>`;
+      : `<div class="row-note">hidden by one of your manual exclude globs/domains — switch it on here to record it anyway</div>`;
   }
 
   _switchMarkup({ checked, mixed = false, disabled = false, entityId = "", deviceId = "", kind = "entity" }) {

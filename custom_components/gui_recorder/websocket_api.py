@@ -105,8 +105,14 @@ def _entity_recorded(entity_id: str, excluded: set[str], rescued: set[str], hidd
     return entity_id not in excluded
 
 
-def _apply_toggle(data: dict, entity_ids: set[str], recorded: bool) -> bool:
-    """Move entity_ids to the wanted state across both lists. True if anything changed."""
+def _apply_toggle(data: dict, entity_ids: set[str], recorded: bool, rescue: bool = False) -> bool:
+    """Move entity_ids to the wanted state across both lists. True if anything changed.
+
+    rescue=True only for the single-entity toggle. Bulk actions (Select all, a whole
+    device) leave entities hidden by the user's own globs alone: rescuing in bulk
+    would silently write one include.entities entry per hidden entity and override
+    the user's globs wholesale. Rescuing stays an explicit, per-entity decision.
+    """
     excluded = set(_normalize_excluded(data.get("excluded_entities", [])))
     rescued = set(_normalize_excluded(data.get("rescued_entities", [])))
     before = (set(excluded), set(rescued))
@@ -118,7 +124,7 @@ def _apply_toggle(data: dict, entity_ids: set[str], recorded: bool) -> bool:
             # Removing it from exclude.entities is not enough when one of the user's
             # own globs hides it - that needs include.entities, which is what the
             # rescue list becomes.
-            if _is_glob_hidden(entity_id, domains, pattern):
+            if rescue and _is_glob_hidden(entity_id, domains, pattern):
                 rescued.add(entity_id)
         else:
             rescued.discard(entity_id)
@@ -142,7 +148,7 @@ async def _set_entity_recorded_state(hass: HomeAssistant, entity_id: str, record
     data = await async_reload_data(hass)
     entity_id = _normalize_entity_id(entity_id)
 
-    changed = _apply_toggle(data, {entity_id}, recorded)
+    changed = _apply_toggle(data, {entity_id}, recorded, rescue=True)
     if not changed:
         return data, False
 
