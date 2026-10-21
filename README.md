@@ -7,7 +7,7 @@ A Home Assistant custom component that adds a sidebar panel to manage your `reco
 
 ![GUI Recorder overview](images/overview.png)
 
-> **SQLite only.** MariaDB and PostgreSQL are explicitly rejected during setup with a clear error message.
+> **Database backends:** SQLite, MariaDB/MySQL and PostgreSQL are supported. Database counts are read using Home Assistant's recorder session; the reported size for server databases is an estimate and may depend on database permissions.
 
 > [!WARNING]
 > **Use with care.** Purge operations permanently delete recorder history and cannot be undone. The migration flow modifies `configuration.yaml` directly. Always create a full Home Assistant backup before using maintenance or migration features. The authors take no responsibility for data loss.
@@ -16,7 +16,7 @@ A Home Assistant custom component that adds a sidebar panel to manage your `reco
 
 - **Sidebar panel** integrated directly into the Home Assistant navigation bar.
 - **Per-device and per-entity control**: enable or disable recording with a toggle — no YAML editing required.
-- **Database statistics**: total / current / obsolete records, matched exclusions, disk size (sums `.db` + `.db-wal` + `.db-shm`), SQLite file path.
+- **Database statistics**: total / current / obsolete records, matched exclusions, database size (SQLite file + WAL/SHM, MariaDB/MySQL `information_schema`, PostgreSQL `pg_database_size`), and a database identifier without credentials.
 - **Maintenance actions**:
   - Purge the database (uses global retention setting).
   - Purge excluded entities (full history, ignores retention).
@@ -101,7 +101,13 @@ To leave `configuration.yaml` clean (recommended), fold `gui_recorder.yaml` back
 ## Requirements
 
 - Home Assistant **2024.1.0** or later.
-- Recorder database on **SQLite** (MariaDB and PostgreSQL are not supported).
+- Recorder database on **SQLite**, **MariaDB/MySQL**, or **PostgreSQL**.
+
+## Database backends
+
+GUI Recorder uses Home Assistant's existing recorder database connection. No separate driver, database URL or credentials are needed. Entity-count analysis runs in the recorder's database executor and uses read-only SQLAlchemy sessions. The size reported by MariaDB/MySQL uses `information_schema.TABLES`; PostgreSQL uses `pg_database_size(current_database())`. The server-reported size may differ from filesystem usage and depends on the database user's permissions. If size inspection fails, record counts remain available and the panel displays **Unavailable** for the size.
+
+For testing this fork before merging, copy `custom_components/gui_recorder/` into Home Assistant's `custom_components/gui_recorder/` directory and restart Home Assistant. **Back up Home Assistant before changing recorder configuration or running purges.**
 
 ## Support
 
