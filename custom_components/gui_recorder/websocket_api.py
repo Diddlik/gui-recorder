@@ -31,8 +31,7 @@ async def _wait_recorder_idle(hass: HomeAssistant) -> None:
 
     The recorder.purge service returns as soon as the task is enqueued, not when
     the actual DELETE has been committed. We wait for the recorder queue to drain,
-    plus a small safety delay so the SQLite WAL checkpoint catches up before any
-    read-only analysis runs.
+    plus a small safety delay before the next read-only analysis runs.
     """
     global _BLOCK_API_WARNED
     try:
@@ -51,7 +50,7 @@ async def _wait_recorder_idle(hass: HomeAssistant) -> None:
         if not _BLOCK_API_WARNED:
             _LOGGER.warning("Could not wait for recorder to be idle: %s", err)
             _BLOCK_API_WARNED = True
-    # Small safety margin for SQLite WAL checkpoint visibility on a fresh read-only connection.
+    # Small safety margin before a fresh read-only database analysis.
     await asyncio.sleep(0.3)
 
 
@@ -164,12 +163,13 @@ def _build_stats_payload(hass: HomeAssistant) -> dict:
     total_rows = stats.get("total_rows")
     if total_rows is None:
         total_rows = sum(entity_counts.values())
+    size = stats.get("db_size_bytes")
     return {
         "entity_counts": entity_counts,
         "generated_at": stats.get("generated_at"),
         "db_path": stats.get("db_path", "home-assistant_v2.db"),
         "total_rows": total_rows,
-        "db_size_bytes": int(stats.get("db_size_bytes", 0) or 0),
+        "db_size_bytes": int(size) if size is not None else None,
         "error": stats.get("error"),
     }
 

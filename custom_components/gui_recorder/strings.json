@@ -8,7 +8,7 @@
     },
     "abort": {
       "single_instance_allowed": "Only one GUI Recorder instance is allowed.",
-      "unsupported_database": "GUI Recorder currently only supports the SQLite recorder backend. Your Home Assistant recorder is configured to use a different database (MariaDB, MySQL or PostgreSQL), which is not supported by this integration.",
+      "unsupported_database": "GUI Recorder supports SQLite, MariaDB/MySQL and PostgreSQL. Your Home Assistant recorder uses an unsupported database backend.",
       "recorder_not_ready": "The Home Assistant recorder is not ready yet. Please wait a moment and try again."
     }
   }

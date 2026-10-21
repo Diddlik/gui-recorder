@@ -6,7 +6,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
-from .db_stats import is_sqlite_recorder
+from .db_stats import is_supported_recorder
 from .migration import async_detect_sync_status
 from .panel import async_setup_panel
 from .storage import async_load_data, async_save_data
@@ -50,10 +50,10 @@ async def async_setup(hass: HomeAssistant, _config: dict) -> bool:
 
 
 async def async_setup_entry(hass: HomeAssistant, _entry: ConfigEntry) -> bool:
-    if is_sqlite_recorder(hass) is False:
+    if is_supported_recorder(hass) is False:
         _LOGGER.error(
-            "GUI Recorder only supports the SQLite recorder backend. "
-            "Detected a different db_url; aborting setup."
+            "GUI Recorder supports SQLite, MariaDB/MySQL and PostgreSQL. "
+            "Detected an unsupported recorder db_url; aborting setup."
         )
         return False
     await _async_initialize(hass)
