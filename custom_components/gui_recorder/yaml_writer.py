@@ -128,8 +128,7 @@ async def async_write_yaml(hass: HomeAssistant) -> str:
     parts.append(f"purge_keep_days: {purge_keep_days}")
     parts.append(f"commit_interval: {commit_interval}")
     if isinstance(db_url, str) and db_url.strip():
-        # safe_dump quotes the value if the sqlite URL needs it (it usually
-        # doesn't, but the ':' and '///' are safest left to the emitter).
+        # Let the YAML emitter quote connection URLs when necessary.
         parts.append(yaml.safe_dump({"db_url": db_url.strip()}, default_flow_style=False).rstrip())
     parts.append("")
 

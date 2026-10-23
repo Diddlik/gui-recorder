@@ -28,6 +28,16 @@ def is_sqlite_recorder(hass: HomeAssistant) -> bool | None:
     return db_url.lower().startswith("sqlite")
 
 
+def is_supported_recorder(hass: HomeAssistant) -> bool | None:
+    """Accept SQLite and the MySQL/MariaDB recorder backends, including drivers."""
+    db_url = _get_recorder_db_url(hass)
+    if not db_url:
+        return None
+    return db_url.strip().lower().split(":", 1)[0].split("+", 1)[0] in {
+        "sqlite", "mysql", "mariadb"
+    }
+
+
 def _resolve_sqlite_db_path(hass: HomeAssistant) -> Path:
     """Return the real on-disk SQLite path from recorder.db_url, falling back to default."""
     db_url = _get_recorder_db_url(hass)
@@ -109,20 +119,59 @@ def _analyze_sqlite_db(db_path: str) -> dict:
         conn.close()
 
 
+def _analyze_server_db(hass: HomeAssistant) -> dict:
+    """Read statistics using the recorder's existing engine and credentials."""
+    from homeassistant.components.recorder import get_instance
+    from sqlalchemy import inspect, text
+
+    engine = get_instance(hass).engine
+    if engine is None:
+        raise RuntimeError("The recorder database is not ready yet.")
+
+    with engine.connect() as connection:
+        if "states_meta" in inspect(connection).get_table_names():
+            query = """
+                SELECT sm.entity_id, COUNT(*)
+                FROM states s
+                JOIN states_meta sm ON sm.metadata_id = s.metadata_id
+                GROUP BY sm.entity_id
+                ORDER BY COUNT(*) DESC
+            """
+        else:
+            query = "SELECT entity_id, COUNT(*) FROM states GROUP BY entity_id ORDER BY COUNT(*) DESC"
+        rows = connection.execute(text(query)).all()
+
+    return {
+        "entity_counts": {entity_id: count for entity_id, count in rows},
+        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "db_path": f"{engine.dialect.name} (recorder)",
+        "db_size_bytes": None,
+        "total_rows": sum(count for _, count in rows),
+        "error": None,
+    }
+
+
 async def async_analyze_db(hass: HomeAssistant) -> dict:
     data = hass.data[DOMAIN]["data"]
-    db_path = str(_resolve_sqlite_db_path(hass))
+    sqlite = is_sqlite_recorder(hass)
+    db_path = str(_resolve_sqlite_db_path(hass)) if sqlite else "Recorder database"
 
     try:
-        stats = await hass.async_add_executor_job(_analyze_sqlite_db, db_path)
+        if sqlite is None:
+            raise RuntimeError("The recorder database is not ready yet.")
+        if sqlite:
+            stats = await hass.async_add_executor_job(_analyze_sqlite_db, db_path)
+        else:
+            stats = await hass.async_add_executor_job(_analyze_server_db, hass)
     except Exception as err:  # noqa: BLE001
         stats = {
             "entity_counts": {},
             "generated_at": None,
             "db_path": db_path,
-            "db_size_bytes": 0,
+            "db_size_bytes": None,
             "total_rows": 0,
-            "error": str(err),
+            # SQLAlchemy errors can include connection details; keep server errors private.
+            "error": str(err) if sqlite else "Could not analyze the recorder database. Check database availability and recorder readiness.",
         }
 
     data["stats"] = stats

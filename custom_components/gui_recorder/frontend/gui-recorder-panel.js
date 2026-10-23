@@ -854,7 +854,7 @@ class GuiRecorderPanel extends HTMLElement {
             <div class="stat-box"><div class="stat-label">Current records</div><div class="stat-value">${this._formatNumber(stats.current_rows || 0)}</div></div>
             <div class="stat-box"><div class="stat-label">Obsolete / unlinked records</div><div class="stat-value">${this._formatNumber(stats.obsolete_rows || 0)}</div></div>
             <div class="stat-box"><div class="stat-label">Configured exclusions</div><div class="stat-value">${this._formatNumber(stats.configured_exclusions || 0)}</div><div class="stat-subtle">Matched ${this._formatNumber(stats.matched_exclusions || 0)} · Unmatched ${this._formatNumber(stats.unmatched_exclusions || 0)}</div></div>
-            <div class="stat-box"><div class="stat-label">DB size</div><div class="stat-value">${this._escapeHtml(this._formatBytes(stats.db_size_bytes || 0))}</div></div>
+            <div class="stat-box"><div class="stat-label">DB size</div><div class="stat-value">${stats.db_size_bytes == null ? "Unavailable" : this._escapeHtml(this._formatBytes(stats.db_size_bytes))}</div></div>
             <div class="stat-box"><div class="stat-label">Database</div><div class="stat-value">${this._escapeHtml(stats.db_path || "home-assistant_v2.db")}</div></div>
           </div>
           ${stats.error ? `<div class="message">Error: ${this._escapeHtml(stats.error)}</div>` : ""}

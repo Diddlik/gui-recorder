@@ -7,7 +7,7 @@ A Home Assistant custom component that adds a sidebar panel to manage your `reco
 
 ![GUI Recorder overview](images/overview.png)
 
-> **SQLite only.** MariaDB and PostgreSQL are explicitly rejected during setup with a clear error message.
+> **Supported databases:** SQLite, MariaDB and MySQL. PostgreSQL is not supported.
 
 > [!WARNING]
 > **Use with care.** Purge operations permanently delete recorder history and cannot be undone. The migration flow modifies `configuration.yaml` directly. Always create a full Home Assistant backup before using maintenance or migration features. The authors take no responsibility for data loss.
@@ -16,7 +16,7 @@ A Home Assistant custom component that adds a sidebar panel to manage your `reco
 
 - **Sidebar panel** integrated directly into the Home Assistant navigation bar.
 - **Per-device and per-entity control**: enable or disable recording with a toggle — no YAML editing required.
-- **Database statistics**: total / current / obsolete records, matched exclusions, disk size (sums `.db` + `.db-wal` + `.db-shm`), SQLite file path.
+- **Database statistics**: total / current / obsolete records and matched exclusions on all supported backends. SQLite also shows the file path and disk size (sums `.db` + `.db-wal` + `.db-shm`). Server database size is shown as unavailable.
 - **Maintenance actions**:
   - Purge the database (uses global retention setting).
   - Purge excluded entities (full history, ignores retention).
@@ -72,6 +72,16 @@ recorder: !include gui_recorder.yaml
 
 The integration writes that file automatically. If you already had a `recorder:` block in `configuration.yaml`, the panel's migration flow guides you through replacing it.
 
+### MariaDB / MySQL
+
+Configure and verify your database in Home Assistant's `recorder` integration first. GUI Recorder uses the recorder's existing connection and driver; no separate database credentials are needed in GUI Recorder.
+
+When migrating an existing recorder configuration, import it before disabling the old block. The import preserves `db_url`, including driver and connection options, in `gui_recorder.yaml` so a restart keeps using the same database. This generated file and GUI Recorder's storage can contain database credentials; protect them like `configuration.yaml`.
+
+Automatic import stops if the existing YAML cannot be parsed, including configurations using `!secret`. Resolve those references before importing, or migrate manually while preserving your `db_url`. Review the generated configuration before restarting. Purge and repack actions use Home Assistant's recorder services; disk space reclamation depends on the database backend.
+
+After updating from a SQLite-only version, restart Home Assistant and add **GUI Recorder** again if the earlier setup was rejected with `unsupported_database`.
+
 ## Uninstalling
 
 Removing the integration doesn't touch your recorder database or delete any data — GUI Recorder only ever reads it. The generated `gui_recorder.yaml` also lives in your config directory, not inside the integration, so it isn't removed either: `recorder: !include gui_recorder.yaml` is plain Home Assistant YAML and keeps working with the integration gone, so your current recording behavior is preserved either way.
@@ -101,7 +111,7 @@ To leave `configuration.yaml` clean (recommended), fold `gui_recorder.yaml` back
 ## Requirements
 
 - Home Assistant **2024.1.0** or later.
-- Recorder database on **SQLite** (MariaDB and PostgreSQL are not supported).
+- Recorder database on **SQLite**, **MariaDB** or **MySQL**, already working in Home Assistant. PostgreSQL is not supported.
 
 ## Support
 

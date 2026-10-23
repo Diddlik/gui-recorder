@@ -204,6 +204,8 @@ def _detect_sync_status(hass: HomeAssistant) -> dict[str, Any]:
         legacy_config = _parse_yaml_text(recorder_yaml_path.read_text(encoding="utf-8"))
 
     summary = _extract_summary_from_recorder_config(legacy_config)
+    if legacy_source_type and legacy_config is None:
+        legacy_message = legacy_message or "Could not parse the recorder configuration. Resolve YAML tags such as !secret before importing, or migrate the configuration manually."
 
     return {
         "config_path": str(config_path),
@@ -314,6 +316,8 @@ def _import_legacy_sync(hass: HomeAssistant) -> dict[str, Any]:
     status = _detect_sync_status(hass)
     if not status.get("legacy_detected"):
         return {"ok": False, "error": "No legacy recorder configuration was detected to import."}
+    if status.get("legacy_message"):
+        return {"ok": False, "error": status["legacy_message"]}
 
     summary = status.get("legacy_summary") or {}
     supported = summary.get("supported_import") or {}
@@ -335,15 +339,11 @@ def _import_legacy_sync(hass: HomeAssistant) -> dict[str, Any]:
         if value is not None:
             updates[key] = bool(value)
 
-    # Preserve a custom SQLite db_url (e.g. a database moved to /share). The
-    # recorder only reads db_url from its own config, so dropping it on migration
-    # made HA silently start a fresh empty DB at the default path. Only carry over
-    # sqlite URLs - non-sqlite backends can't reach this point anyway (setup aborts
-    # on them), but guard defensively.
+    # Preserve the backend and connection settings so migration cannot switch
+    # a server database to the default SQLite file after restart.
     db_url = supported.get("db_url")
     if isinstance(db_url, str) and db_url.strip():
-        if db_url.strip().lower().startswith("sqlite"):
-            updates["db_url"] = db_url.strip()
+        updates["db_url"] = db_url.strip()
 
     # Domain/glob/event_type filters can't be managed per-entity, but unlike
     # entities they can be carried over verbatim as YAML into the manual
