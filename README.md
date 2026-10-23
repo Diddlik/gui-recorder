@@ -16,7 +16,7 @@ A Home Assistant custom component that adds a sidebar panel to manage your `reco
 
 - **Sidebar panel** integrated directly into the Home Assistant navigation bar.
 - **Per-device and per-entity control**: enable or disable recording with a toggle — no YAML editing required.
-- **Database statistics**: total / current / obsolete records and matched exclusions on all supported backends. SQLite also shows the file path and disk size (sums `.db` + `.db-wal` + `.db-shm`). Server database size is shown as unavailable.
+- **Database statistics**: total / current / obsolete records and matched exclusions on all supported backends. SQLite also shows the file path and disk size (sums `.db` + `.db-wal` + `.db-shm`). MariaDB/MySQL shows the database's reported table and index size; this is an estimate for InnoDB and excludes server logs and other server files. If size metadata is unavailable, the panel shows "Unavailable".
 - **Maintenance actions**:
   - Purge the database (uses global retention setting).
   - Purge excluded entities (full history, ignores retention).

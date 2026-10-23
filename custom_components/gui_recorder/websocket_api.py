@@ -169,7 +169,7 @@ def _build_stats_payload(hass: HomeAssistant) -> dict:
         "generated_at": stats.get("generated_at"),
         "db_path": stats.get("db_path", "home-assistant_v2.db"),
         "total_rows": total_rows,
-        "db_size_bytes": int(stats.get("db_size_bytes", 0) or 0),
+        "db_size_bytes": int(stats["db_size_bytes"]) if stats.get("db_size_bytes") is not None else None,
         "error": stats.get("error"),
     }
 

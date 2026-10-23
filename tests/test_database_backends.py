@@ -1,5 +1,6 @@
 """Run with: python -m unittest discover -s tests -v (SQLAlchemy and PyYAML required)."""
 import asyncio
+import ast
 from contextlib import closing
 import importlib
 import sys
@@ -137,6 +138,49 @@ class DatabaseBackendTests(unittest.TestCase):
             self.assertEqual(asyncio.run(stats.async_analyze_db(self.hass)), expected)
             analyze.assert_called_once_with(self.hass)
             sqlite.assert_not_called()
+
+    def test_server_size_sums_only_current_database_tables(self):
+        engine = create_engine("sqlite://")
+        self.addCleanup(engine.dispose)
+        self.hass.recorder.engine = engine
+        with engine.begin() as connection:
+            connection.connection.driver_connection.create_function("DATABASE", 0, lambda: "recorder")
+            connection.execute(text("CREATE TABLE states (entity_id TEXT)"))
+            connection.execute(text("INSERT INTO states VALUES ('sensor.a')"))
+            connection.execute(text("ATTACH DATABASE ':memory:' AS information_schema"))
+            connection.execute(text("""
+                CREATE TABLE information_schema.TABLES (
+                    TABLE_SCHEMA TEXT, TABLE_TYPE TEXT, DATA_LENGTH INTEGER, INDEX_LENGTH INTEGER
+                )
+            """))
+            connection.execute(text("""
+                INSERT INTO information_schema.TABLES VALUES
+                    ('recorder', 'BASE TABLE', 1000, 200),
+                    ('recorder', 'BASE TABLE', 300, NULL),
+                    ('other_database', 'BASE TABLE', 99999, 99999),
+                    ('recorder', 'VIEW', 99999, 99999)
+            """))
+        result = stats._analyze_server_db(self.hass)
+        self.assertEqual(result["db_size_bytes"], 1500)
+        self.assertEqual(result["entity_counts"], {"sensor.a": 1})
+        with engine.begin() as connection:
+            connection.execute(text("DELETE FROM information_schema.TABLES"))
+        self.assertIsNone(stats._analyze_server_db(self.hass)["db_size_bytes"])
+
+    def test_stats_payload_preserves_unknown_zero_and_known_sizes(self):
+        # Load the real payload builder without registering HA websocket handlers.
+        path = Path(package.__path__[0]) / "websocket_api.py"
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        function = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "_build_stats_payload")
+        namespace = {"DOMAIN": "gui_recorder", "HomeAssistant": object}
+        exec(compile(ast.Module(body=[function], type_ignores=[]), str(path), "exec"), namespace)
+        build_payload = namespace["_build_stats_payload"]
+        for size in (None, 0, 1500):
+            with self.subTest(size=size):
+                self.hass.data["gui_recorder"]["data"]["stats"] = {"db_size_bytes": size}
+                self.assertEqual(build_payload(self.hass)["db_size_bytes"], size)
+        self.hass.data["gui_recorder"]["data"]["stats"] = {}
+        self.assertIsNone(build_payload(self.hass)["db_size_bytes"])
 
     def test_server_failure_does_not_expose_credentials(self):
         with patch.object(stats, "_analyze_server_db", side_effect=RuntimeError(self.hass.recorder.db_url)), \

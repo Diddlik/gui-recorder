@@ -123,6 +123,7 @@ def _analyze_server_db(hass: HomeAssistant) -> dict:
     """Read statistics using the recorder's existing engine and credentials."""
     from homeassistant.components.recorder import get_instance
     from sqlalchemy import inspect, text
+    from sqlalchemy.exc import SQLAlchemyError
 
     engine = get_instance(hass).engine
     if engine is None:
@@ -140,12 +141,24 @@ def _analyze_server_db(hass: HomeAssistant) -> dict:
         else:
             query = "SELECT entity_id, COUNT(*) FROM states GROUP BY entity_id ORDER BY COUNT(*) DESC"
         rows = connection.execute(text(query)).all()
+        db_size_bytes = None
+        try:
+            size = connection.execute(text("""
+                SELECT SUM(COALESCE(DATA_LENGTH, 0) + COALESCE(INDEX_LENGTH, 0))
+                FROM information_schema.TABLES
+                WHERE TABLE_SCHEMA = DATABASE() AND TABLE_TYPE = 'BASE TABLE'
+            """)).scalar()
+            if size is not None:
+                db_size_bytes = int(size)
+        except SQLAlchemyError:
+            # Missing metadata access must not discard the entity counts.
+            pass
 
     return {
         "entity_counts": {entity_id: count for entity_id, count in rows},
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "db_path": f"{engine.dialect.name} (recorder)",
-        "db_size_bytes": None,
+        "db_size_bytes": db_size_bytes,
         "total_rows": sum(count for _, count in rows),
         "error": None,
     }
